@@ -1,4 +1,5 @@
 import pygame
+import pygame.gfxdraw
 
 # Setup
 pygame.init()
@@ -30,6 +31,7 @@ while run:
     win.fill((127,127,127))
 
     # GUI
+    # Left section
     chatsTitle = bold.render('Chats', 1, (25,25,25))
     sideBar = pygame.draw.rect(win, (255,255,255), (0,0,max(chatsTitle.get_width()+160,width//4),height))
 
@@ -38,6 +40,9 @@ while run:
 
     # Text
     win.blit(chatsTitle, (sideBar[2]//2-chatsTitle.get_width()//2, 15))
+
+    # Right section
+    pygame.draw.rect(win, (255,255,255), (sideBar[2]+20, height-80, width-sideBar[2]-40, 60))
 
     # Update display
     pygame.display.update()
