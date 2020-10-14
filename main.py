@@ -30,11 +30,14 @@ while run:
     win.fill((127,127,127))
 
     # GUI
-    sideBar = pygame.draw.rect(win, (255,255,255), (0,0,width//5,height))
+    chatsTitle = bold.render('Chats', 1, (25,25,25))
+    sideBar = pygame.draw.rect(win, (255,255,255), (0,0,max(chatsTitle.get_width()+160,width//4),height))
 
-    # Chats
-    chatsTitle = bold.render('Chats', 10, (25,25,25))
-    win.blit(chatsTitle, (, height//2))
+    topSideBar = pygame.draw.rect(win, (220,220,220), (0,0,sideBar[2], 70))
+    pygame.draw.line(win, (140,140,140), (0,70), (sideBar[2],70), 2)
+
+    # Text
+    win.blit(chatsTitle, (sideBar[2]//2-chatsTitle.get_width()//2, 15))
 
     # Update display
     pygame.display.update()
