@@ -7,12 +7,15 @@ class User:
 
 class Server:
     def __init__(self, port):
+        print('Setting up...')
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print('Binding...')
         self.s.bind(('', port))
         self.s.listen()
 
         self.users = []
 
+        print('Accepting connections.')
         while True:
             clientsocket, address = self.s.accept()
             print(f"[INFO] Connection from {address} has been established.")
@@ -27,17 +30,16 @@ class Server:
             #     user.sock.send(bytearray([6]))
             #     continue
             user.name = stuff[0]
-            user.color = int(stuff[1]),int(stuff[2]),int(stuff[3])
             print(f"[INFO] {user.addr} initialized. Name is {user.name}, color is {user.color}")
-            for p in [i for i in self.users if i != user]:
-                msg = p.name+","+str(p.color[0])+","+str(p.color[1])+","+str(p.color[2])
+            for u in [i for i in self.users if i != user]:
+                msg = f'{u.name}, {u.addr}'
                 user.sock.send(bytearray([1, len(msg)]))
                 user.sock.send(msg.encode())
-                # print(f"told {user.name} that {p.name} exists")
-                msg = user.name+","+str(user.color[0])+","+str(user.color[1])+","+str(user.color[2])
-                p.sock.send(bytearray([1, len(msg)]))
-                p.sock.send(msg.encode())
-                # print(f"told {p.name} that {user.name} exists")
+                # print(f"told {user.name} that {u.name} exists")
+                msg = f'{user.name}, {user.addr}'
+                u.sock.send(bytearray([1, len(msg)]))
+                u.sock.send(msg.encode())
+                # print(f"told {u.name} that {user.name} exists")
 
     def client(self, user):
         while True:
@@ -48,10 +50,6 @@ class Server:
                     continue
                 header = int.from_bytes(user.sock.recv(1), "little")
                 data = user.sock.recv(header).decode()
-                if command == 4:
-                    threading.Thread(target=self.initialize, args=[user, data]).start()
-                elif command == 2: # user sends coordinates
-                    threading.Thread(target=self.recvCoords, args=[user, data]).start()
             except ConnectionResetError:
                 threading.Thread(target=self.inform, args=[user]).start()
                 return
@@ -67,12 +65,12 @@ class Server:
             self.users.remove(user)
             print(f"[INFO] {user.name} has left.")
             user.sock.close()
-            for p in [i for i in self.users if i != user]:
+            for u in [i for i in self.users if i != user]:
                 try:
-                    p.sock.send(bytearray([3, len(user.name)]))
-                    p.sock.send(user.name.encode())
+                    u.sock.send(bytearray([3, len(user.name)]))
+                    u.sock.send(user.name.encode())
                 except ConnectionResetError:
-                    self.inform(p)
+                    self.inform(u)
         except ValueError:
             return
 
