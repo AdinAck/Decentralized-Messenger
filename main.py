@@ -1,52 +1,31 @@
-import pygame
-import pygame.gfxdraw
+import tkinter as tk
+import tkinter.ttk as ttk
 
-# Setup
-pygame.init()
+root = tk.Tk()
+root.title('DeMsg')
+root.geometry('1280x720')
+root.resizable(True, True)
+root.minsize(750,500)
 
-win = pygame.display.set_mode(size=(1280,720),flags=pygame.RESIZABLE|pygame.DOUBLEBUF)
-pygame.display.set_caption("DeMsg")
+sideBar = tk.Frame(root, bg='#101010')
+sideBar.grid(row=0,column=0,sticky='NESW')
+root.rowconfigure(0,weight=1)
+root.grid_columnconfigure(0,weight=1)
+root.grid_columnconfigure(1,weight=3)
 
-light = pygame.font.Font('fonts/Roboto-Light.ttf', 16)
-regular = pygame.font.Font('fonts/Roboto-Regular.ttf', 16)
-medium = pygame.font.Font('fonts/Roboto-Medium.ttf', 24)
-bold = pygame.font.Font('fonts/Roboto-Bold.ttf', 36)
+main = tk.Frame(root, bg='#303030')
+main.grid(row=0,column=1,sticky='NESW')
 
-run = True
-while run:
-    # Event handling
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
-        if event.type == pygame.VIDEORESIZE:
-            win = pygame.display.set_mode(size=(event.w,event.h),flags=pygame.RESIZABLE)
+msgBoxRect = tk.Frame(main,height=40, bg='#404040')
+msgBoxRect.pack(side=tk.BOTTOM, fill=tk.X, padx=20,pady=20)
+msgBoxRect.grid_propagate(0)
 
-    # Update some variables
-    width, height = pygame.display.get_surface().get_size()
+msgBox = tk.Entry(msgBoxRect, bg='#404040', borderwidth=0, font='Roboto 16', fg='#FFFFFF', insertbackground='#909090')
+msgBoxRect.grid_columnconfigure(0,weight=9)
+msgBoxRect.grid_columnconfigure(1,weight=1)
+msgBox.grid(row=0, column=0, sticky='EW', pady=7, padx=5)
 
-    # Get pressed keys
-    keys = pygame.key.get_pressed()
+send = ttk.Button(msgBoxRect, text='Send')
+send.grid(row=0, column=1, sticky='NSEW')
 
-    # Fill background
-    win.fill((127,127,127))
-
-    # GUI
-    # Left section
-    chatsTitle = bold.render('Chats', 1, (25,25,25))
-    sideBar = pygame.draw.rect(win, (255,255,255), (0,0,max(chatsTitle.get_width()+160,width//4),height))
-
-    topSideBar = pygame.draw.rect(win, (220,220,220), (0,0,sideBar[2], 70))
-    pygame.draw.line(win, (140,140,140), (0,70), (sideBar[2],70), 2)
-
-    # Text
-    win.blit(chatsTitle, (sideBar[2]//2-chatsTitle.get_width()//2, 15))
-
-    # Right section
-    pygame.draw.rect(win, (255,255,255), (sideBar[2]+20, height-80, width-sideBar[2]-40, 60))
-
-    # Update display
-    pygame.display.update()
-
-# Exit
-pygame.quit()
-exit()
+root.mainloop()
