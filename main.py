@@ -6,16 +6,14 @@ class Home:
         self.main = tk.Frame(root)
         self.main.pack(fill=tk.BOTH, expand=True)
 
-        leftSideBar = tk.Frame(self.main, bg='#101010')
+        leftSideBar = tk.Frame(self.main, width=300, bg='#101010')
         leftSideBar.grid(row=0,column=0,sticky='NESW')
 
-        rightSideBar = tk.Frame(self.main, bg='#101010')
+        rightSideBar = tk.Frame(self.main, width=250, bg='#101010')
         rightSideBar.grid(row=0,column=2,sticky='NESW')
 
         self.main.rowconfigure(0,weight=1)
-        self.main.grid_columnconfigure(0,weight=1)
-        self.main.grid_columnconfigure(1,weight=3)
-        self.main.grid_columnconfigure(2,weight=1)
+        self.main.grid_columnconfigure(1,weight=1)
 
         # scrollbar = tk.Scrollbar(leftSideBar)
         # scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
