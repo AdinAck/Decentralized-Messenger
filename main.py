@@ -169,7 +169,7 @@ if __name__ == '__main__':
     root.title('DeMsg')
     root.geometry('1280x720')
     root.resizable(True, True)
-    root.minsize(750,500)
+    root.minsize(1000,500)
 
     # Start home screen
     h = Home(root)
