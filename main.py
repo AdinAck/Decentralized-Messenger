@@ -34,6 +34,14 @@ class Home:
         send = tk.Button(msgBoxRect, text='Send', bg='#0f61d4',fg='white',borderwidth=0)
         send.grid(row=0, column=1, sticky='NSEW')
 
+        # Set up menu bar
+        self.menubar = tk.Menu(root)
+        root.config(menu=self.menubar)
+        menubar2 = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label='Menu', menu=menubar2)
+        menubar2.add_command(label='Create Room', command=createRoom)
+        menubar2.add_command(label='Join Room', command=joinRoom)
+
 class JoinRoom:
     def __init__(self, root):
         self.main = tk.Frame(root, bg='#303030')
@@ -81,11 +89,16 @@ class JoinRoom:
         buttonFrame.grid_columnconfigure(1, weight=11)
         buttonFrame.grid_rowconfigure(0, weight=1)
 
-        cancel = tk.Button(buttonFrame, text='Cancel', bg='#404040', fg='white', borderwidth=0, command=joinToHome)
+        cancel = tk.Button(buttonFrame, text='Cancel', bg='#404040', fg='white', borderwidth=0, command=self.backHome)
         cancel.grid(row=0, column=0, padx=5, pady=5, sticky='NSEW')
 
         join = tk.Button(buttonFrame, text='Join', bg='#0f61d4', fg='white', borderwidth=0)
         join.grid(row=0, column=1, padx=5, pady=5, sticky='NSEW')
+
+    def backHome(self):
+        global h, root
+        self.main.destroy()
+        h = Home(root)
 
 class CreateRoom:
     def __init__(self, root):
@@ -128,49 +141,39 @@ class CreateRoom:
         buttonFrame.grid_columnconfigure(1, weight=11)
         buttonFrame.grid_rowconfigure(0, weight=1)
 
-        cancel = tk.Button(buttonFrame, text='Cancel', bg='#404040', fg='white', borderwidth=0, command=createToHome)
+        cancel = tk.Button(buttonFrame, text='Cancel', bg='#404040', fg='white', borderwidth=0, command=self.backHome)
         cancel.grid(row=0, column=0, padx=5, pady=5, sticky='NSEW')
 
         create = tk.Button(buttonFrame, text='Create', bg='#0f61d4', fg='white', borderwidth=0)
         create.grid(row=0, column=1, padx=5, pady=5, sticky='NSEW')
 
+    def backHome(self):
+        global h, root
+        self.main.destroy()
+        h = Home(root)
+
 
 def joinRoom():
     global h, j, root
     h.main.destroy()
+    h.menubar.destroy()
     j = JoinRoom(root)
 
 def createRoom():
     global h, c, root
     h.main.destroy()
+    h.menubar.destroy()
     c = CreateRoom(root)
 
-def joinToHome():
-    global j, h, root
-    j.main.destroy()
+if __name__ == '__main__':
+    # Initialize tkinter window
+    root = tk.Tk()
+    root.title('DeMsg')
+    root.geometry('1280x720')
+    root.resizable(True, True)
+    root.minsize(750,500)
+
+    # Start home screen
     h = Home(root)
 
-def createToHome():
-    global c, h, root
-    c.main.destroy()
-    h = Home(root)
-
-# Initialize tkinter window
-root = tk.Tk()
-root.title('DeMsg')
-root.geometry('1280x720')
-root.resizable(True, True)
-root.minsize(750,500)
-
-# Main GUI elements
-h = Home(root)
-
-# Set up menu bar
-menubar = tk.Menu(root)
-root.config(menu=menubar)
-menubar2 = tk.Menu(menubar, tearoff=0)
-menubar.add_cascade(label='Menu', menu=menubar2)
-menubar2.add_command(label='Create Room', command=createRoom)
-menubar2.add_command(label='Join Room', command=joinRoom)
-
-root.mainloop()
+    root.mainloop()
