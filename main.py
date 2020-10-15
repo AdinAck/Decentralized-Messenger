@@ -18,6 +18,21 @@ class Chat:
         self.members = []
         self.history = {}
 
+class MenuBar:
+    def __init__(self, root):
+        self.root = root
+
+    def render(self):
+        self.menubar = tk.Menu(self.root)
+        self.root.config(menu=self.menubar)
+        profile = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label='Profile', menu=profile)
+        profile.add_command(label='Change Name', command=lambda: swapScreens(n))
+        rooms = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label='Rooms', menu=rooms)
+        rooms.add_command(label='Create Room', command=lambda: swapScreens(c))
+        rooms.add_command(label='Join Room', command=lambda: swapScreens(j))
+
 class Home:
     def __init__(self, root):
         self.root = root
@@ -234,9 +249,12 @@ class ChangeName:
 
 
 def swapScreens(new):
-    global root, currentScreen
+    global root, currentScreen, menubar
     currentScreen.main.destroy()
+    m.menubar.destroy()
     new.render()
+    if type(new) != ChangeName:
+        m.render()
 
 def genId():
     return hex(random.randint(2**63+1,2**64))[2:].upper()
@@ -276,6 +294,7 @@ if __name__ == '__main__':
             pickle.dump(chats, file, pickle.HIGHEST_PROTOCOL)
 
     # Set up screens
+    m = MenuBar(root)
     h = Home(root)
     j = JoinRoom(root)
     c = CreateRoom(root)
@@ -286,16 +305,7 @@ if __name__ == '__main__':
     else:
         # Start home screen
         h.render()
-
-    # Set up menu bar
-    menubar = tk.Menu(root)
-    root.config(menu=menubar)
-    profile = tk.Menu(menubar, tearoff=0)
-    menubar.add_cascade(label='Profile', menu=profile)
-    profile.add_command(label='Change Name', command=lambda: swapScreens(n))
-    rooms = tk.Menu(menubar, tearoff=0)
-    menubar.add_cascade(label='Rooms', menu=rooms)
-    rooms.add_command(label='Create Room', command=lambda: swapScreens(c))
-    rooms.add_command(label='Join Room', command=lambda: swapScreens(j))
+        # Start menubar
+        m.render()
 
     root.mainloop()
