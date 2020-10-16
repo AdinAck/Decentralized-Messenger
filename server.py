@@ -6,20 +6,24 @@ class User:
         self.sock, self.addr, self.name = sock, addr, name
 
 class Server:
-    def __init__(self, port):
+    def __init__(self, port=80):
         print('Setting up...')
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         print('Binding...')
         self.s.bind(('', port))
         self.s.listen()
+        self.run = True
 
         self.users = []
 
+        threading.Thread(target=self.mainloop, daemon=True).start()
+
+    def mainloop(self):
         print('Accepting connections.')
-        while True:
+        while self.run:
             clientsocket, address = self.s.accept()
             print(f"[INFO] Connection from {address} has been established.")
-            self.users.append(user(clientsocket, address))
+            self.users.append(User(clientsocket, address))
             threading.Thread(target=self.client, args=[self.users[-1]]).start()
 
     def initialize(self, user, data):
@@ -29,20 +33,20 @@ class Server:
             #     print(f"[WARN] {user.addr} username already taken.")
             #     user.sock.send(bytearray([6]))
             #     continue
-            user.name = stuff[0]
-            print(f"[INFO] {user.addr} initialized. Name is {user.name}, color is {user.color}")
+            user.id, user.name = stuff[0], stuff[1]
+            print(f"[INFO] {user.addr} initialized. ID is {user.id}, name is {user.name}")
             for u in [i for i in self.users if i != user]:
-                msg = f'{u.name}, {u.addr}'
+                msg = f'{u.id}, {u.addr}, {u.name}'
                 user.sock.send(bytearray([1, len(msg)]))
                 user.sock.send(msg.encode())
                 # print(f"told {user.name} that {u.name} exists")
-                msg = f'{user.name}, {user.addr}'
+                msg = f'{user.id}, {user.addr}, {user.name}'
                 u.sock.send(bytearray([1, len(msg)]))
                 u.sock.send(msg.encode())
                 # print(f"told {u.name} that {user.name} exists")
 
     def client(self, user):
-        while True:
+        while self.run:
             try:
                 command = int.from_bytes(user.sock.recv(1), "little")
                 if command == 0:
@@ -59,6 +63,7 @@ class Server:
                 print(f"[ERR] [{user.addr}] {e}")
                 self.users.remove(user)
                 return
+        print(f'Disconnecting from {user.addr}')
 
     def inform(self, user):
         try:
