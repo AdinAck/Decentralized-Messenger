@@ -10,16 +10,21 @@ class User:
         self.status = False
 
 class Client:
-    def __init__(self, sckt, chat, contacts):
+    def __init__(self, user, sckt, chat, contacts):
+        self.user = user
         self.s = sckt
         self.chat = chat
         self.contacts = contacts
         self.s.settimeout(socket.getdefaulttimeout())
         self.run = True
 
-        threading.Thread(target=self.mainloop, daemon=True).start()
+        # threading.Thread(target=self.mainloop, daemon=True).start()
 
     def mainloop(self):
+        msg = f'{self.user.id},{self.user.name}'
+        self.s.send(bytearray([1, len(msg)]))
+        self.s.send(msg.encode())
+
         while self.run:
             command = int.from_bytes(self.s.recv(1), "little")
             header = int.from_bytes(self.s.recv(1), "little")
@@ -27,8 +32,10 @@ class Client:
 
             if command == 1: # A new user is in the group
                 stuff = data.split(",") # id, addr, name
+                if stuff[1] == 'HOST':
+                    stuff[1] = self.s.getpeername()[0]
                 self.contacts[stuff[0]] = User(id=stuff[0], addr=stuff[1], name=stuff[2])
-                chat.members.append(self.contacts[stuff[0]])
+                self.chat.members.append(self.contacts[stuff[0]])
                 self.contacts[stuff[0]].status = True
                 print(f'{stuff[2]} now exists.')
 

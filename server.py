@@ -5,8 +5,17 @@ class User:
     def __init__(self, sock, addr, name="UNKNOWN"):
         self.sock, self.addr, self.id = sock, addr, name
 
+class NonSockUser:
+    def __init__(self, id='', addr='', name=''):
+        if id == '':
+            self.id = genId()
+        self.addr = addr
+        self.name = name
+        self.status = True
+
 class Server:
-    def __init__(self, chats, contacts, port=8082):
+    def __init__(self, user, chats, contacts, port=8082):
+        self.user = user
         self.chatDict = {chat.id: chat for chat in chats}
         self.contacts = contacts
         print('Setting up...')
@@ -37,6 +46,13 @@ class Server:
             #     continue
             user.id, user.name = stuff[0], stuff[1]
             print(f"[INFO] {user.addr} initialized. ID is {user.id}, name is {user.name}")
+
+            self.contacts[user.id] = NonSockUser(id=user.id, addr=user.addr, name=user.name)
+
+            msg = f'{self.user.id},HOST,{self.user.name}'
+            user.sock.send(bytearray([1, len(msg)]))
+            user.sock.send(msg.encode())
+
             for u in [i for i in self.users if i != user]:
                 msg = f'{u.id},{u.addr},{u.name}'
                 user.sock.send(bytearray([1, len(msg)]))
@@ -60,7 +76,7 @@ class Server:
                 elif command == 2: # Client is sending a message to a group
                     stuff = data.split(",") # group ID, timestamp, message
                     if stuff[0] in self.chatDict.keys():
-                        self.chatDict[stuff[0]].history[stuff[1]] = (user.id, stuff[2])
+                        self.chatDict[stuff[0]].history[int(stuff[1])] = (user.id, stuff[2])
                         self.distribute(2, f'{stuff[0]},{stuff[1]},{user.id},{stuff[2]}')
                         print(f'{user.name}: {stuff[2]}')
                     else:

@@ -6,6 +6,7 @@ from tkinter import *
 from tkinter import ttk
 import pickle
 import random
+from datetime import datetime
 
 class User:
     def __init__(self, id='', addr='', name=''):
@@ -31,6 +32,7 @@ class Network:
 
         self.hostList = []
         threads = []
+        self.clients = {}
 
         for chat in chats:
             threads.append(threading.Thread(target=lambda: self.findHost(chat)))
@@ -39,17 +41,18 @@ class Network:
         for thread in threads:
             thread.join()
 
-        threading.Thread(target=lambda: self.startServer(chats, contacts)).start()
+        threading.Thread(target=lambda: self.startServer(user, chats, contacts)).start()
 
     def findHost(self, chat):
-        global contacts
+        global contacts, user
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(0.1)
         if len(chat.members) != 0:
-            for user in chat.members:
+            for member in chat.members:
                 try:
-                    s.connect((user.addr, 8082))
-                    threading.Thread(target=lambda: Client(s, chat, contacts), daemon=True).start()
+                    s.connect((member.addr, 8082))
+                    self.clients[chat.id] = Client(user, s, chat, contacts)
+                    threading.Thread(target=self.clients[chat.id].mainloop, daemon=True).start()
                     return
                 except socket.timeout:
                     pass
@@ -57,8 +60,12 @@ class Network:
         print(f'{chat.id} has no hosts, adding to host list.')
         self.hostList.append(chat)
 
-    def startServer(self, chats, contacts):
-        self.server = Server(chats, contacts)
+    def startServer(self, user, chats, contacts):
+        self.server = Server(user, chats, contacts)
+
+    def clientSend(self, id, command, msg):
+        self.clients[id].send(bytearray([command, len(msg)]))
+        self.clients[id].send(msg.encode())
 
 class MenuBar:
     def __init__(self, root):
@@ -85,7 +92,7 @@ class Home:
         else:
             self.viewedChat = None
     def render(self):
-        global currentScreen, chats
+        global currentScreen, chats, net
         currentScreen = self
 
         self.main = Frame(self.root)
@@ -108,7 +115,7 @@ class Home:
         canvas.create_window((0,0), window=container, anchor='nw')
 
         for i in range(len(chats)):
-            self.chatgfx.append(Button(container, text=f'{chats[i].name}\nLast message: test', bg='#101010', fg='white', borderwidth=1, width=34, height=5, anchor='w', highlightbackground='white'))
+            self.chatgfx.append(Button(container, text=f'{chats[i].name}\nLast message: test', bg='#101010', fg='white', borderwidth=1, width=34, height=5, anchor='w', highlightbackground='white', command=lambda: self.changeChatFocus(chats[i])))
             self.chatgfx[-1].pack(side=TOP)
 
         rightSideBar = Frame(self.main, width=250, bg='#101010')
@@ -123,13 +130,24 @@ class Home:
         msgBoxRect = Frame(messageArea,height=40, bg='#404040')
         msgBoxRect.pack(side=BOTTOM, fill=X, padx=20,pady=20)
 
-        msgBox = Entry(msgBoxRect, bg='#404040', borderwidth=0, font='Roboto 16', fg='#FFFFFF', insertbackground='#909090')
+        self.msg = StringVar()
+
+        self.msgBox = Entry(msgBoxRect, bg='#404040', borderwidth=0, font='Roboto 16', fg='#FFFFFF', insertbackground='#909090', textvariable=self.msg)
         msgBoxRect.grid_columnconfigure(0,weight=9)
         msgBoxRect.grid_columnconfigure(1,weight=1)
-        msgBox.grid(row=0, column=0, sticky='EW', pady=7, padx=5)
+        self.msgBox.grid(row=0, column=0, sticky='EW', pady=7, padx=5)
 
-        send = Button(msgBoxRect, text='Send', bg='#0f61d4',fg='white',borderwidth=0)
+        send = Button(msgBoxRect, text='Send', bg='#0f61d4',fg='white',borderwidth=0, command=lambda: self.sendMsg(self.viewedChat.id, int(datetime.now().strftime("%Y%m%d%H%M%S%f")), self.msgBox.get()))
         send.grid(row=0, column=1, sticky='NSEW')
+
+    def changeChatFocus(self, chat):
+        self.viewedChat = chat
+
+    def sendMsg(self, gid, time, msg):
+        global net, user
+        net.clientSend(gid, 2, f'{gid},{time},{msg}')
+        self.msg.set('')
+        self.viewedChat.history[time] = user.id, msg
 
 class JoinRoom:
     def __init__(self, root):
@@ -191,13 +209,14 @@ class JoinRoom:
         join.grid(row=0, column=1, padx=5, pady=5, sticky='NSEW')
 
     def joinRoom(self, id, ip):
-        global chats, contacts
+        global chats, contacts, user, net
         chats.insert(0, Chat(id, 'yeet'))
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(0.1)
         try:
             s.connect((ip, 8082))
-            threading.Thread(target=lambda: Client(s, chats[0], contacts), daemon=True).start()
+            net.clients[chats[0].id] = Client(user, s, chats[0], contacts)
+            threading.Thread(target=net.clients[chats[0].id].mainloop, daemon=True).start()
             swapScreens(h)
         except socket.timeout:
             chats.pop(0)
