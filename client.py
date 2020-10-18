@@ -42,7 +42,7 @@ class Client:
             elif command == 2: # A user has sent a message
                 stuff = data.split(",") # group ID, timestamp, user ID, message
                 self.chat.history[stuff[1]] = (stuff[2], stuff[3])
-                print(f'{stuff[2]}: {stuff[3]}')
+                print(f'{self.contacts[stuff[2]].name}: {stuff[3]}')
 
             elif command == 3: # A user has disconnected
                 self.contacts[data].status = False

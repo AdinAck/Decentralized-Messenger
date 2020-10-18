@@ -77,7 +77,7 @@ class Server:
                     stuff = data.split(",") # group ID, timestamp, message
                     if stuff[0] in self.chatDict.keys():
                         self.chatDict[stuff[0]].history[int(stuff[1])] = (user.id, stuff[2])
-                        self.distribute(2, f'{stuff[0]},{stuff[1]},{user.id},{stuff[2]}')
+                        self.distribute(user, 2, f'{stuff[0]},{stuff[1]},{user.id},{stuff[2]}')
                         print(f'{user.name}: {stuff[2]}')
                     else:
                         print(f'User {user.id} aka {user.name} sent a message to a group that does not exist?')
@@ -93,7 +93,7 @@ class Server:
                 return
         print(f'Disconnecting from {user.addr}')
 
-    def distribute(self, command, msg):
+    def distribute(self, user, command, msg):
         for u in [i for i in self.users if i != user]:
             u.sock.send(bytearray([command, len(msg)]))
             u.sock.send(msg.encode())

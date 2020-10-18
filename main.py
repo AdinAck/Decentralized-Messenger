@@ -64,8 +64,8 @@ class Network:
         self.server = Server(user, chats, contacts)
 
     def clientSend(self, id, command, msg):
-        self.clients[id].send(bytearray([command, len(msg)]))
-        self.clients[id].send(msg.encode())
+        self.clients[id].s.send(bytearray([command, len(msg)]))
+        self.clients[id].s.send(msg.encode())
 
 class MenuBar:
     def __init__(self, root):
@@ -144,8 +144,14 @@ class Home:
         self.viewedChat = chat
 
     def sendMsg(self, gid, time, msg):
-        global net, user
-        net.clientSend(gid, 2, f'{gid},{time},{msg}')
+        global net, user, chats
+        if gid not in [chat.id for chat in net.hostList]:
+            net.clientSend(gid, 2, f'{gid},{time},{msg}')
+        else:
+            msg = f'{gid},{time},{user.id},{msg}'
+            for u in [i for i in net.server.users]:
+                u.sock.send(bytearray([2, len(msg)]))
+                u.sock.send(msg.encode())
         self.msg.set('')
         self.viewedChat.history[time] = user.id, msg
 
