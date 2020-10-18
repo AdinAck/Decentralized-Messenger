@@ -39,11 +39,11 @@ class Server:
             print(f"[INFO] {user.addr} initialized. ID is {user.id}, name is {user.name}")
             for u in [i for i in self.users if i != user]:
                 msg = f'{u.id},{u.addr},{u.name}'
-                user.sock.send(bytearray([0, len(msg)]))
+                user.sock.send(bytearray([1, len(msg)]))
                 user.sock.send(msg.encode())
                 # print(f"told {user.name} that {u.name} exists")
                 msg = f'{user.id},{user.addr},{user.name}'
-                u.sock.send(bytearray([0, len(msg)]))
+                u.sock.send(bytearray([1, len(msg)]))
                 u.sock.send(msg.encode())
                 # print(f"told {u.name} that {user.name} exists")
 
@@ -54,14 +54,15 @@ class Server:
                 header = int.from_bytes(user.sock.recv(1), "little")
                 data = user.sock.recv(header).decode()
 
-                if command == 0: # Client is telling us it has connected and sends credentials
+                if command == 1: # Client is telling us it has connected and sends credentials
                     self.initialize(user, data)
 
-                elif command == 1: # Client is sending a message to a group
+                elif command == 2: # Client is sending a message to a group
                     stuff = data.split(",") # group ID, timestamp, message
                     if stuff[0] in self.chatDict.keys():
                         self.chatDict[stuff[0]].history[stuff[1]] = (user.id, stuff[2])
-                        self.distribute(1, f'{stuff[0]},{stuff[1]},{user.id},{stuff[2]}')
+                        self.distribute(2, f'{stuff[0]},{stuff[1]},{user.id},{stuff[2]}')
+                        print(f'{user.name}: {stuff[2]}')
                     else:
                         print(f'User {user.id} aka {user.name} sent a message to a group that does not exist?')
 
@@ -89,9 +90,11 @@ class Server:
             self.contacts[user.id].status = False
             for u in [i for i in self.users if i != user]:
                 try:
-                    u.sock.send(bytearray([2, len(user.id)]))
+                    u.sock.send(bytearray([3, len(user.id)]))
                     u.sock.send(user.id.encode())
                 except ConnectionResetError:
                     self.inform(u)
         except ValueError:
             return
+        except AttributeError:
+            print(f'Unknown client from address {user.addr} disconnected.')

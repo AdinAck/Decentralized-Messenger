@@ -42,20 +42,20 @@ class Network:
         threading.Thread(target=lambda: self.startServer(chats, contacts)).start()
 
     def findHost(self, chat):
+        global contacts
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(0.1)
-        hostFound = False
         if len(chat.members) != 0:
             for user in chat.members:
                 try:
                     s.connect((user.addr, 8082))
-                    hostFound = True
+                    threading.Thread(target=lambda: Client(s, chat, contacts), daemon=True).start()
+                    return
                 except socket.timeout:
                     pass
 
-        if not hostFound:
-            print(f'{chat.id} has no hosts, adding to host list.')
-            self.hostList.append(chat)
+        print(f'{chat.id} has no hosts, adding to host list.')
+        self.hostList.append(chat)
 
     def startServer(self, chats, contacts):
         self.server = Server(chats, contacts)
@@ -187,8 +187,20 @@ class JoinRoom:
         cancel = Button(buttonFrame, text='Cancel', bg='#404040', fg='white', borderwidth=0, command=lambda: swapScreens(h))
         cancel.grid(row=0, column=0, padx=5, pady=5, sticky='NSEW')
 
-        join = Button(buttonFrame, text='Join', bg='#0f61d4', fg='white', borderwidth=0)
+        join = Button(buttonFrame, text='Join', bg='#0f61d4', fg='white', borderwidth=0, command=lambda: self.joinRoom(idEntry.get(), ipEntry.get()))
         join.grid(row=0, column=1, padx=5, pady=5, sticky='NSEW')
+
+    def joinRoom(self, id, ip):
+        global chats, contacts
+        chats.insert(0, Chat(id, 'yeet'))
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.1)
+        try:
+            s.connect((ip, 8082))
+            threading.Thread(target=lambda: Client(s, chats[0], contacts), daemon=True).start()
+            swapScreens(h)
+        except socket.timeout:
+            chats.pop(0)
 
 class CreateRoom:
     def __init__(self, root):
@@ -328,7 +340,7 @@ def genId():
 def hostRoom(id, name):
     print(f'Created room with id: {id}')
     chats.insert(0, Chat(id, name))
-    chats[0].members.append(User(id='1234', addr='127.0.0.1', name='Adin'))
+    # chats[0].members.append(User(id='1234', addr='127.0.0.1', name='Adin'))
     c.id = genId()
     net.hostList.append(chats[-1])
     print(f'Added {id} to hostList.')
