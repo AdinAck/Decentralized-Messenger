@@ -1,6 +1,7 @@
 import threading
 import socket
 from server import Server
+from client import Client
 from tkinter import *
 from tkinter import ttk
 import pickle
@@ -12,10 +13,12 @@ class User:
             self.id = genId()
         self.addr = addr
         self.name = name
+        self.status = False
 
 class Chat:
-    def __init__(self, id):
+    def __init__(self, id, name):
         self.id = id
+        self.name = name
         self.members = []
         self.history = {}
 
@@ -24,7 +27,7 @@ class Network:
         pass
 
     def start(self):
-        global user, chats
+        global user, chats, contacts
 
         self.hostList = []
         threads = []
@@ -36,8 +39,7 @@ class Network:
         for thread in threads:
             thread.join()
 
-        if len(self.hostList) > 0:
-            threading.Thread(target=self.startServer).start()
+        threading.Thread(target=lambda: self.startServer(chats, contacts)).start()
 
     def findHost(self, chat):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -46,7 +48,7 @@ class Network:
         if len(chat.members) != 0:
             for user in chat.members:
                 try:
-                    s.connect((user.addr, 80))
+                    s.connect((user.addr, 8082))
                     hostFound = True
                 except socket.timeout:
                     pass
@@ -55,8 +57,8 @@ class Network:
             print(f'{chat.id} has no hosts, adding to host list.')
             self.hostList.append(chat)
 
-    def startServer(self):
-        self.server = Server()
+    def startServer(self, chats, contacts):
+        self.server = Server(chats, contacts)
 
 class MenuBar:
     def __init__(self, root):
@@ -75,7 +77,13 @@ class MenuBar:
 
 class Home:
     def __init__(self, root):
+        global chats
         self.root = root
+        self.chatgfx = []
+        if len(chats) > 0:
+            self.viewedChat = chats[0]
+        else:
+            self.viewedChat = None
     def render(self):
         global currentScreen, chats
         currentScreen = self
@@ -100,9 +108,8 @@ class Home:
         canvas.create_window((0,0), window=container, anchor='nw')
 
         for i in range(len(chats)):
-            chatgfx.append(Button(container, text=f'{chats[i].id}\nLast message: test', bg='#101010', fg='white', borderwidth=1, width=34, height=5, anchor='w', highlightbackground='white'))
-            # chatgfx[-1].grid(row=i, column=1, pady=10)
-            chatgfx[-1].pack(side=TOP)
+            self.chatgfx.append(Button(container, text=f'{chats[i].name}\nLast message: test', bg='#101010', fg='white', borderwidth=1, width=34, height=5, anchor='w', highlightbackground='white'))
+            self.chatgfx[-1].pack(side=TOP)
 
         rightSideBar = Frame(self.main, width=250, bg='#101010')
         rightSideBar.grid(row=0,column=2,sticky='NESW')
@@ -202,7 +209,7 @@ class CreateRoom:
         self.main.grid_columnconfigure(1, weight=1)
         self.main.grid_columnconfigure(2, weight=1)
 
-        container = Frame(self.main, width=350, height=100, bg='#101010')
+        container = Frame(self.main, width=350, height=150, bg='#101010')
         container.grid(row=1, column=1)
 
         container.grid_propagate(0)
@@ -227,6 +234,12 @@ class CreateRoom:
         idValue.grid(row=0, column=1)
         idValue.config(relief='flat')
 
+        nameLabel = Label(textBoxFrame, text='Name:', bg='#101010', fg='white', font='Roboto 16')
+        nameLabel.grid(row=1, column=0, ipady=10)
+
+        nameEntry = Entry(textBoxFrame, borderwidth=0, bg='#404040', font='Roboto 16', fg='#FFFFFF', insertbackground='#909090')
+        nameEntry.grid(row=1, column=1)
+
         buttonFrame = Frame(container, bg='#101010')
         buttonFrame.grid(row=1, column=0, sticky='NSEW')
 
@@ -237,7 +250,7 @@ class CreateRoom:
         cancel = Button(buttonFrame, text='Cancel', bg='#404040', fg='white', borderwidth=0, command=lambda: swapScreens(h))
         cancel.grid(row=0, column=0, padx=5, pady=5, sticky='NSEW')
 
-        create = Button(buttonFrame, text='Create', bg='#0f61d4', fg='white', borderwidth=0, command=lambda: hostRoom(self.id))
+        create = Button(buttonFrame, text='Create', bg='#0f61d4', fg='white', borderwidth=0, command=lambda: hostRoom(self.id, nameEntry.get()))
         create.grid(row=0, column=1, padx=5, pady=5, sticky='NSEW')
 
 class ChangeName:
@@ -303,7 +316,8 @@ class ChangeName:
 def swapScreens(new):
     global root, currentScreen, menubar
     currentScreen.main.destroy()
-    m.menubar.destroy()
+    if type(currentScreen) != ChangeName:
+        m.menubar.destroy()
     new.render()
     if type(new) != ChangeName:
         m.render()
@@ -311,17 +325,20 @@ def swapScreens(new):
 def genId():
     return hex(random.randint(2**63+1,2**64))[2:].upper()
 
-def hostRoom(id):
+def hostRoom(id, name):
     print(f'Created room with id: {id}')
-    chats.append(Chat(id))
-    chats[-1].members.append(User(id='1234', addr='127.0.0.1', name='Adin'))
+    chats.insert(0, Chat(id, name))
+    chats[0].members.append(User(id='1234', addr='127.0.0.1', name='Adin'))
     c.id = genId()
     net.hostList.append(chats[-1])
+    print(f'Added {id} to hostList.')
     swapScreens(h)
 
 def on_closing():
     with open('user.pkl', 'wb') as file:
         pickle.dump(user, file, pickle.HIGHEST_PROTOCOL)
+    with open('contacts.pkl', 'wb') as file:
+        pickle.dump(contacts, file)
     with open('chats.pkl', 'wb') as file:
         pickle.dump(chats, file)
     root.destroy()
@@ -344,6 +361,13 @@ if __name__ == '__main__':
         user = User()
 
     try:
+        with open('contacts.pkl', 'rb') as file:
+            contacts = pickle.load(file)
+    except FileNotFoundError:
+        print('Contacts file does not exist, creating.')
+        contacts = {}
+
+    try:
         with open('chats.pkl', 'rb') as file:
             chats = pickle.load(file)
     except FileNotFoundError:
@@ -356,8 +380,6 @@ if __name__ == '__main__':
     j = JoinRoom(root)
     c = CreateRoom(root)
     n = ChangeName(root)
-
-    chatgfx = []
 
     if user.name == '':
         n.render()
