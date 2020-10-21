@@ -63,7 +63,6 @@ class Network:
                 s.settimeout(0.1)
                 if id not in self.connections:
                     try:
-                        print(member.addr)
                         s.connect((member.addr, 8082))
                         self.clients[chat.id] = Client(user, s, chat, contacts, self.connections)
                         threading.Thread(target=self.clients[chat.id].mainloop, daemon=True).start()
