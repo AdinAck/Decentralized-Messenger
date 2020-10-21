@@ -57,11 +57,11 @@ class Server:
                 msg = f'{u.id},{u.addr},{u.name}'
                 user.sock.send(bytearray([1, len(msg)]))
                 user.sock.send(msg.encode())
-                # print(f"told {user.name} that {u.name} exists")
+                print(f"told {user.name} that {u.name} exists")
                 msg = f'{user.id},{user.addr},{user.name}'
                 u.sock.send(bytearray([1, len(msg)]))
                 u.sock.send(msg.encode())
-                # print(f"told {u.name} that {user.name} exists")
+                print(f"told {u.name} that {user.name} exists")
 
     def client(self, user):
         while self.run:
@@ -77,6 +77,7 @@ class Server:
                     stuff = data.split(",") # group ID, timestamp, message
                     if stuff[0] in self.chatDict.keys():
                         self.chatDict[stuff[0]].history[int(stuff[1])] = (user.id, stuff[2])
+                        self.chatDict[stuff[0]].messages += f'\n{user.name}: {stuff[2]}'
                         self.distribute(user, 2, f'{stuff[0]},{stuff[1]},{user.id},{stuff[2]}')
                         print(f'{user.name}: {stuff[2]}')
                     else:

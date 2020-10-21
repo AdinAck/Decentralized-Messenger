@@ -12,6 +12,8 @@ class User:
     def __init__(self, id='', addr='', name=''):
         if id == '':
             self.id = genId()
+        else:
+            self.id = id
         self.addr = addr
         self.name = name
         self.status = False
@@ -22,6 +24,15 @@ class Chat:
         self.name = name
         self.members = []
         self.history = {}
+        self.text = StringVar()
+
+    @property
+    def messages(self):
+        return self.text.get()
+
+    @messages.setter
+    def messages(self, val):
+        self.text.set(val)
 
 class Network:
     def __init__(self, home):
@@ -32,6 +43,7 @@ class Network:
 
         self.hostList = []
         threads = []
+        self.connections = []
         self.clients = {}
 
         for chat in chats:
@@ -49,13 +61,15 @@ class Network:
         s.settimeout(0.1)
         if len(chat.members) != 0:
             for member in chat.members:
-                try:
-                    s.connect((member.addr, 8082))
-                    self.clients[chat.id] = Client(user, s, chat, contacts)
-                    threading.Thread(target=self.clients[chat.id].mainloop, daemon=True).start()
-                    return
-                except socket.timeout:
-                    pass
+                if member.id not in self.connections:
+                    try:
+                        s.connect((member.addr, 8082))
+                        self.clients[chat.id] = Client(user, s, chat, contacts, self.connections)
+                        threading.Thread(target=self.clients[chat.id].mainloop, daemon=True).start()
+                        self.connections.append(member.id)
+                        return
+                    except socket.timeout:
+                        pass
 
         print(f'{chat.id} has no hosts, adding to host list.')
         self.hostList.append(chat)
@@ -115,7 +129,7 @@ class Home:
         canvas.create_window((0,0), window=container, anchor='nw')
 
         for i in range(len(chats)):
-            self.chatgfx.append(Button(container, text=f'{chats[i].name}\nLast message: test', bg='#101010', fg='white', borderwidth=1, width=34, height=5, anchor='w', highlightbackground='white', command=lambda: self.changeChatFocus(chats[i])))
+            self.chatgfx.append(Button(container, text=f'{chats[i].name}\nLast message: test', bg='#101010', fg='white', borderwidth=1, width=34, height=5, anchor='w', justify=LEFT, highlightbackground='white', command=lambda: self.changeChatFocus(chats[i])))
             self.chatgfx[-1].pack(side=TOP)
 
         rightSideBar = Frame(self.main, width=250, bg='#101010')
@@ -140,20 +154,28 @@ class Home:
         send = Button(msgBoxRect, text='Send', bg='#0f61d4',fg='white',borderwidth=0, command=lambda: self.sendMsg(self.viewedChat.id, int(datetime.now().strftime("%Y%m%d%H%M%S%f")), self.msgBox.get()))
         send.grid(row=0, column=1, sticky='NSEW')
 
+        if self.viewedChat != None:
+            self.text = self.viewedChat.text
+            text = Label(messageArea, textvariable=self.text, bg='#303030', fg='white', font='Roboto 16', anchor='w', justify=LEFT)
+            text.pack(side=BOTTOM, fill=X, padx=20)
+
     def changeChatFocus(self, chat):
+        print(f"Changed chat to {chat.id}")
         self.viewedChat = chat
+        self.text = chat.text
 
     def sendMsg(self, gid, time, msg):
         global net, user, chats
-        if gid not in [chat.id for chat in net.hostList]:
+        if gid not in [chat.id for chat in net.hostList]: # If we are not hosting
             net.clientSend(gid, 2, f'{gid},{time},{msg}')
-        else:
-            msg = f'{gid},{time},{user.id},{msg}'
+        else: # If we are hosting
+            msg2 = f'{gid},{time},{user.id},{msg}'
             for u in [i for i in net.server.users]:
-                u.sock.send(bytearray([2, len(msg)]))
-                u.sock.send(msg.encode())
+                u.sock.send(bytearray([2, len(msg2)]))
+                u.sock.send(msg2.encode())
         self.msg.set('')
         self.viewedChat.history[time] = user.id, msg
+        self.viewedChat.messages += f"\n{user.name}: {msg}"
 
 class JoinRoom:
     def __init__(self, root):
@@ -221,8 +243,9 @@ class JoinRoom:
         s.settimeout(0.1)
         try:
             s.connect((ip, 8082))
-            net.clients[chats[0].id] = Client(user, s, chats[0], contacts)
+            net.clients[chats[0].id] = Client(user, s, chats[0], contacts, net.connections)
             threading.Thread(target=net.clients[chats[0].id].mainloop, daemon=True).start()
+            net.connections.append(chats[0].id)
             swapScreens(h)
         except socket.timeout:
             chats.pop(0)
@@ -368,6 +391,7 @@ def hostRoom(id, name):
     # chats[0].members.append(User(id='1234', addr='127.0.0.1', name='Adin'))
     c.id = genId()
     net.hostList.append(chats[-1])
+    net.server.chatDict[chats[-1].id] = chats[-1]
     print(f'Added {id} to hostList.')
     swapScreens(h)
 
@@ -376,6 +400,8 @@ def on_closing():
         pickle.dump(user, file, pickle.HIGHEST_PROTOCOL)
     with open('contacts.pkl', 'wb') as file:
         pickle.dump(contacts, file)
+    for chat in chats:
+        chat.text = None
     with open('chats.pkl', 'wb') as file:
         pickle.dump(chats, file)
     root.destroy()
@@ -407,6 +433,8 @@ if __name__ == '__main__':
     try:
         with open('chats.pkl', 'rb') as file:
             chats = pickle.load(file)
+            for chat in chats:
+                chat.text = StringVar()
     except FileNotFoundError:
         print('Chats file does not exist, creating.')
         chats = []
