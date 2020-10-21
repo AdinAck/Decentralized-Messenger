@@ -47,7 +47,7 @@ class Client:
 
                 elif command == 2: # A user has sent a message
                     stuff = data.split(",") # group ID, timestamp, user ID, message
-                    self.chat.history[stuff[1]] = (stuff[2], stuff[3])
+                    self.chat.history[int(stuff[1])] = (stuff[2], stuff[3])
                     self.chat.messages += f'\n{self.contacts[stuff[2]].name}: {stuff[3]}'
                     print(f'{self.contacts[stuff[2]].name}: {stuff[3]}')
 

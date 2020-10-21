@@ -174,7 +174,7 @@ class Home:
                 u.sock.send(bytearray([2, len(msg2)]))
                 u.sock.send(msg2.encode())
         self.msg.set('')
-        self.viewedChat.history[time] = user.id, msg
+        self.viewedChat.history[int(time)] = user.id, msg
         self.viewedChat.messages += f"\n{user.name}: {msg}"
 
 class JoinRoom:
@@ -430,13 +430,14 @@ if __name__ == '__main__':
             contacts = pickle.load(file)
     except FileNotFoundError:
         print('Contacts file does not exist, creating.')
-        contacts = {}
+        contacts = {user.id: user}
 
     try:
         with open('chats.pkl', 'rb') as file:
             chats = pickle.load(file)
             for chat in chats:
                 chat.text = StringVar()
+                chat.text.set("\n".join([f"{contacts[chat.history[key][0]].name}: {chat.history[key][1]}" for key in sorted(chat.history.keys())]))
     except FileNotFoundError:
         print('Chats file does not exist, creating.')
         chats = []
