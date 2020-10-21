@@ -56,7 +56,7 @@ class Network:
         threading.Thread(target=lambda: self.startServer(user, chats, contacts)).start()
 
     def findHost(self, chat):
-        global contacts, user
+        global contacts, user, h
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(0.1)
         if len(chat.members) != 0:
@@ -158,6 +158,7 @@ class Home:
             self.text = self.viewedChat.text
             text = Label(messageArea, textvariable=self.text, bg='#303030', fg='white', font='Roboto 16', anchor='w', justify=LEFT)
             text.pack(side=BOTTOM, fill=X, padx=20)
+            print('hi')
 
     def changeChatFocus(self, chat):
         print(f"Changed chat to {chat.id}")
@@ -237,7 +238,7 @@ class JoinRoom:
         join.grid(row=0, column=1, padx=5, pady=5, sticky='NSEW')
 
     def joinRoom(self, id, ip):
-        global chats, contacts, user, net
+        global chats, contacts, user, net, h
         chats.insert(0, Chat(id, 'yeet'))
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(0.1)
@@ -246,6 +247,7 @@ class JoinRoom:
             net.clients[chats[0].id] = Client(user, s, chats[0], contacts, net.connections)
             threading.Thread(target=net.clients[chats[0].id].mainloop, daemon=True).start()
             net.connections.append(chats[0].id)
+            h.viewedChat = chats[0]
             swapScreens(h)
         except socket.timeout:
             chats.pop(0)
@@ -310,9 +312,19 @@ class CreateRoom:
         cancel = Button(buttonFrame, text='Cancel', bg='#404040', fg='white', borderwidth=0, command=lambda: swapScreens(h))
         cancel.grid(row=0, column=0, padx=5, pady=5, sticky='NSEW')
 
-        create = Button(buttonFrame, text='Create', bg='#0f61d4', fg='white', borderwidth=0, command=lambda: hostRoom(self.id, nameEntry.get()))
+        create = Button(buttonFrame, text='Create', bg='#0f61d4', fg='white', borderwidth=0, command=lambda: self.createRoom(self.id, nameEntry.get()))
         create.grid(row=0, column=1, padx=5, pady=5, sticky='NSEW')
 
+    def createRoom(self, id, name):
+        global h, chats
+        print(f'Created room with id: {id}')
+        chats.insert(0, Chat(id, name))
+        c.id = genId()
+        net.hostList.append(chats[-1])
+        net.server.chatDict[chats[-1].id] = chats[-1]
+        print(f'Added {id} to hostList.')
+        h.viewedChat = chats[0]
+        swapScreens(h)
 class ChangeName:
     def __init__(self, root):
         self.root = root
@@ -385,16 +397,6 @@ def swapScreens(new):
 def genId():
     return hex(random.randint(2**63+1,2**64))[2:].upper()
 
-def hostRoom(id, name):
-    print(f'Created room with id: {id}')
-    chats.insert(0, Chat(id, name))
-    # chats[0].members.append(User(id='1234', addr='127.0.0.1', name='Adin'))
-    c.id = genId()
-    net.hostList.append(chats[-1])
-    net.server.chatDict[chats[-1].id] = chats[-1]
-    print(f'Added {id} to hostList.')
-    swapScreens(h)
-
 def on_closing():
     with open('user.pkl', 'wb') as file:
         pickle.dump(user, file, pickle.HIGHEST_PROTOCOL)
@@ -451,6 +453,8 @@ if __name__ == '__main__':
     else:
         # Start home screen
         h.render()
+        if len(chats) > 0:
+            h.viewedChat = chats[0]
         # Start menubar
         m.render()
 

@@ -38,7 +38,7 @@ class Client:
                     stuff = data.split(",") # id, addr, name
                     if stuff[1] != 'HOST':
                         stuff = stuff[0], stuff[1]+stuff[2], stuff[3]
-                    if stuff[1] == 'HOST':
+                    else:
                         stuff[1] = self.s.getpeername()[0]
                     self.contacts[stuff[0]] = User(id=stuff[0], addr=stuff[1], name=stuff[2])
                     self.chat.members.append(self.contacts[stuff[0]])
