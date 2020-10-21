@@ -22,7 +22,7 @@ class Chat:
     def __init__(self, id, name):
         self.id = id
         self.name = name
-        self.members = []
+        self.members = {}
         self.history = {}
         self.text = StringVar()
 
@@ -57,16 +57,17 @@ class Network:
 
     def findHost(self, chat):
         global contacts, user, h
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(0.1)
         if len(chat.members) != 0:
-            for member in chat.members:
-                if member.id not in self.connections:
+            for id, member in chat.members.items():
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(0.1)
+                if id not in self.connections:
                     try:
+                        print(member.addr)
                         s.connect((member.addr, 8082))
                         self.clients[chat.id] = Client(user, s, chat, contacts, self.connections)
                         threading.Thread(target=self.clients[chat.id].mainloop, daemon=True).start()
-                        self.connections.append(member.id)
+                        self.connections.append(id)
                         return
                     except socket.timeout:
                         pass
@@ -158,7 +159,6 @@ class Home:
             self.text = self.viewedChat.text
             text = Label(messageArea, textvariable=self.text, bg='#303030', fg='white', font='Roboto 16', anchor='w', justify=LEFT)
             text.pack(side=BOTTOM, fill=X, padx=20)
-            print('hi')
 
     def changeChatFocus(self, chat):
         print(f"Changed chat to {chat.id}")
@@ -325,6 +325,7 @@ class CreateRoom:
         print(f'Added {id} to hostList.')
         h.viewedChat = chats[0]
         swapScreens(h)
+
 class ChangeName:
     def __init__(self, root):
         self.root = root

@@ -47,7 +47,7 @@ class Server:
             user.id, user.name = stuff[0], stuff[1]
             print(f"[INFO] {user.addr} initialized. ID is {user.id}, name is {user.name}")
 
-            self.contacts[user.id] = NonSockUser(id=user.id, addr=user.addr, name=user.name)
+            self.contacts[user.id] = NonSockUser(id=user.id, addr=user.addr[0], name=user.name)
 
             msg = f'{self.user.id},HOST,{self.user.name}'
             user.sock.send(bytearray([1, len(msg)]))
@@ -78,6 +78,7 @@ class Server:
                     if stuff[0] in self.chatDict.keys():
                         self.chatDict[stuff[0]].history[int(stuff[1])] = (user.id, stuff[2])
                         self.chatDict[stuff[0]].messages += f'\n{user.name}: {stuff[2]}'
+                        self.chatDict[stuff[0]].members[user.id] = self.contacts[user.id]
                         self.distribute(user, 2, f'{stuff[0]},{stuff[1]},{user.id},{stuff[2]}')
                         print(f'{user.name}: {stuff[2]}')
                     else:

@@ -41,7 +41,7 @@ class Client:
                     else:
                         stuff[1] = self.s.getpeername()[0]
                     self.contacts[stuff[0]] = User(id=stuff[0], addr=stuff[1], name=stuff[2])
-                    self.chat.members.append(self.contacts[stuff[0]])
+                    self.chat.members[stuff[0]] = self.contacts[stuff[0]]
                     self.contacts[stuff[0]].status = True
                     print(f'{stuff[2]} now exists.')
 
