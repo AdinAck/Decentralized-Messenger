@@ -1,5 +1,6 @@
 import threading
 import socket
+from time import sleep
 
 class User:
     def __init__(self, id='', addr='', name=''):
@@ -12,12 +13,12 @@ class User:
         self.status = False
 
 class Client:
-    def __init__(self, user, sckt, chat, contacts, connections):
+    def __init__(self, network, user, sckt, chat, contacts):
         self.user = user
         self.s = sckt
         self.chat = chat
         self.contacts = contacts
-        self.connections = connections
+        self.network = network
         self.s.settimeout(socket.getdefaulttimeout())
         self.run = True
 
@@ -27,6 +28,7 @@ class Client:
         msg = f'{self.user.id},{self.user.name}'
         self.s.send(bytearray([1, len(msg)]))
         self.s.send(msg.encode())
+        self.chat.members[self.user.id] = self.user
 
         while self.run:
             try:
@@ -37,9 +39,11 @@ class Client:
                 if command == 1: # A new user is in the group
                     stuff = data.split(",") # id, addr, name
                     if stuff[1] != 'HOST':
-                        stuff = stuff[0], stuff[1]+stuff[2], stuff[3]
+                        stuff = stuff[0], stuff[1][2:-1], stuff[3]
                     else:
                         stuff[1] = self.s.getpeername()[0]
+                        self.hostUserID = stuff[0]
+                        self.network.connections.append(stuff[0])
                     self.contacts[stuff[0]] = User(id=stuff[0], addr=stuff[1], name=stuff[2])
                     self.chat.members[stuff[0]] = self.contacts[stuff[0]]
                     self.contacts[stuff[0]].status = True
@@ -56,4 +60,24 @@ class Client:
 
             except ConnectionResetError:
                 print(f"Host for {self.chat.id} disconnected, closing...")
-                self.connections.remove(self.chat.id)
+                print(self.network.connections)
+                print(self.hostUserID)
+                self.network.connections.remove(self.hostUserID)
+                sortedUsers = sorted([key for key in self.chat.members if key != self.hostUserID])
+                print(sortedUsers)
+                for userID in sortedUsers:
+                    print(userID)
+                    if self.user.id == userID:
+                        print("Hosting")
+                        self.network.hostList.append(self.chat)
+                        return
+                    else:
+                        print("Looking for host")
+                        sleep(2)
+                        if self.network.findHost(self.chat):
+                            return
+                        else:
+                            self.network.hostList.remove(self.chat)
+                            continue
+                self.network.findHost(self.chat)
+                return

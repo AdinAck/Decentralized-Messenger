@@ -59,20 +59,24 @@ class Network:
         global contacts, user, h
         if len(chat.members) != 0:
             for id, member in chat.members.items():
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(0.1)
-                if id not in self.connections:
-                    try:
-                        s.connect((member.addr, 8082))
-                        self.clients[chat.id] = Client(user, s, chat, contacts, self.connections)
-                        threading.Thread(target=self.clients[chat.id].mainloop, daemon=True).start()
-                        self.connections.append(id)
-                        return
-                    except socket.timeout:
-                        pass
+                if id != user.id:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(0.1)
+                    if id not in self.connections:
+                        try:
+                            s.connect((member.addr, 8082))
+                            print("hi")
+                            self.clients[chat.id] = Client(self, user, s, chat, contacts)
+                            print(f"Connecting to {chat.id}.")
+                            threading.Thread(target=self.clients[chat.id].mainloop, daemon=True).start()
+                            self.connections.append(id)
+                            return True
+                        except socket.timeout:
+                            pass
 
         print(f'{chat.id} has no hosts, adding to host list.')
         self.hostList.append(chat)
+        return False
 
     def startServer(self, user, chats, contacts):
         self.server = Server(user, chats, contacts)
@@ -243,9 +247,8 @@ class JoinRoom:
         s.settimeout(0.1)
         try:
             s.connect((ip, 8082))
-            net.clients[chats[0].id] = Client(user, s, chats[0], contacts, net.connections)
+            net.clients[chats[0].id] = Client(net, user, s, chats[0], contacts)
             threading.Thread(target=net.clients[chats[0].id].mainloop, daemon=True).start()
-            net.connections.append(chats[0].id)
             h.viewedChat = chats[0]
             swapScreens(h)
         except socket.timeout:
@@ -424,6 +427,8 @@ if __name__ == '__main__':
     except FileNotFoundError:
         print('User file does not exist, creating.')
         user = User()
+
+    print(f"User ID is {user.id}")
 
     try:
         with open('contacts.pkl', 'rb') as file:
