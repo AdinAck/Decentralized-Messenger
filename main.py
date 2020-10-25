@@ -4,9 +4,11 @@ from server import Server
 from client import Client
 from tkinter import *
 from tkinter import ttk
+from functools import partial
 import pickle
 import random
 from datetime import datetime
+import time
 
 class User:
     def __init__(self, id='', addr='', name=''):
@@ -119,7 +121,7 @@ class Home:
         leftSideBar = Frame(self.main, bg='#101010')
         leftSideBar.grid(row=0,column=0,sticky='NESW')
 
-        canvas = Canvas(leftSideBar, bg='#101010')
+        canvas = Canvas(leftSideBar, bg='#101010', bd=0, highlightthickness=0, relief='ridge')
         canvas.pack(side=LEFT, fill=BOTH)
 
         scrollbar = ttk.Scrollbar(leftSideBar, orient=VERTICAL, command=canvas.yview)
@@ -133,7 +135,10 @@ class Home:
         canvas.create_window((0,0), window=container, anchor='nw')
 
         for i in range(len(chats)):
-            self.chatgfx.append(Button(container, text=f'{chats[i].name}\nLast message: test', bg='#101010', fg='white', borderwidth=1, width=34, height=5, anchor='w', justify=LEFT, highlightbackground='white', command=lambda: self.changeChatFocus(chats[i])))
+            print(chats[i].id)
+            self.chatgfx.append(Button(container, text=f'{chats[i].name}\nLast message: test', bg='#101010', fg='white',
+                                       borderwidth=1, width=34, height=5, anchor='w', justify=LEFT,
+                                       highlightbackground='white', command=partial(self.changeChatFocus, chats[i])))
             self.chatgfx[-1].pack(side=TOP)
 
         rightSideBar = Frame(self.main, width=250, bg='#101010')
@@ -145,31 +150,60 @@ class Home:
         messageArea = Frame(self.main, bg='#303030')
         messageArea.grid(row=0,column=1,sticky='NESW')
 
-        msgBoxRect = Frame(messageArea,height=40, bg='#404040')
+        bottom = Frame(messageArea, bg='#303030')
+        bottom.pack(side=BOTTOM, fill=X, expand=False)
+
+        top = Frame(messageArea, bg='#202020')
+        top.pack(side=BOTTOM, fill=BOTH, expand=True)
+
+        canvas2 = Canvas(top, bg='#303030', bd=0, highlightthickness=0, relief='ridge')
+        canvas2.pack(side=LEFT, fill=BOTH, expand=True)
+
+        scrollbar = ttk.Scrollbar(top, orient=VERTICAL, command=canvas2.yview)
+        scrollbar.pack(side=RIGHT, fill=Y)
+
+        canvas2.configure(yscrollcommand=scrollbar.set)
+        canvas2.bind('<Configure>', lambda e: canvas2.configure(scrollregion = canvas2.bbox('all')))
+
+        container2 = Frame(canvas2, bg='#303030', height=100)
+        container2.bind('<Configure>', lambda e: canvas2.configure(scrollregion = canvas2.bbox('all')))
+
+        canvas2.create_window((0,0), window=container2, anchor='sw', width=2000)
+
+        msgBoxRect = Frame(bottom,height=40, bg='#404040')
         msgBoxRect.pack(side=BOTTOM, fill=X, padx=20,pady=20)
 
         self.msg = StringVar()
 
-        self.msgBox = Entry(msgBoxRect, bg='#404040', borderwidth=0, font='Roboto 16', fg='#FFFFFF', insertbackground='#909090', textvariable=self.msg)
+        self.msgBox = Entry(msgBoxRect, bg='#404040', borderwidth=0, font='Roboto 16', fg='#FFFFFF',
+                            insertbackground='#909090', textvariable=self.msg)
         msgBoxRect.grid_columnconfigure(0,weight=9)
         msgBoxRect.grid_columnconfigure(1,weight=1)
         self.msgBox.grid(row=0, column=0, sticky='EW', pady=7, padx=5)
+        self.msgBox.bind('<Return>', self.handleReturn)
 
-        send = Button(msgBoxRect, text='Send', bg='#0f61d4',fg='white',borderwidth=0, command=lambda: self.sendMsg(self.viewedChat.id, int(datetime.now().strftime("%Y%m%d%H%M%S%f")), self.msgBox.get()))
+        send = Button(msgBoxRect, text='Send', bg='#0f61d4',fg='white',borderwidth=0,
+                      command=lambda: self.sendMsg(self.viewedChat.id, int(datetime.now().strftime("%Y%m%d%H%M%S%f")),
+                      self.msgBox.get()))
         send.grid(row=0, column=1, sticky='NSEW')
 
         if self.viewedChat != None:
-            self.text = self.viewedChat.text
-            text = Label(messageArea, textvariable=self.text, bg='#303030', fg='white', font='Roboto 16', anchor='w', justify=LEFT)
-            text.pack(side=BOTTOM, fill=X, padx=20)
+            tmp = StringVar()
+            tmp.set('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
+            self.label = Label(container2, textvariable=tmp, bg='#303030', fg='white', font='Roboto 16', anchor='w',
+                         justify=LEFT)
+            self.label.pack(side=BOTTOM, fill=X, padx=20)
 
     def changeChatFocus(self, chat):
         print(f"Changed chat to {chat.id}")
         self.viewedChat = chat
-        self.text = chat.text
+        self.label.configure(textvariable=chat.text)
+
+    def handleReturn(self, event):
+        self.sendMsg(self.viewedChat.id, int(datetime.now().strftime("%Y%m%d%H%M%S%f")), self.msgBox.get())
 
     def sendMsg(self, gid, time, msg):
-        global net, user, chats
+        global net, user, chats, h
         if gid not in [chat.id for chat in net.hostList]: # If we are not hosting
             net.clientSend(gid, 2, f'{gid},{time},{msg}')
         else: # If we are hosting
@@ -218,13 +252,15 @@ class JoinRoom:
         idLabel = Label(textBoxFrame, text='ID:', bg='#101010', fg='white', font='Roboto 16')
         idLabel.grid(row=0, column=0, ipady=10)
 
-        idEntry = Entry(textBoxFrame, borderwidth=0, bg='#404040', font='Roboto 16', fg='#FFFFFF', insertbackground='#909090')
+        idEntry = Entry(textBoxFrame, borderwidth=0, bg='#404040', font='Roboto 16', fg='#FFFFFF',
+                        insertbackground='#909090')
         idEntry.grid(row=0, column=1)
 
         ipLabel = Label(textBoxFrame, text='IP:', bg='#101010', fg='white', font='Roboto 16')
         ipLabel.grid(row=1, column=0, ipady=10)
 
-        ipEntry = Entry(textBoxFrame, borderwidth=0, bg='#404040', font='Roboto 16', fg='#FFFFFF', insertbackground='#909090')
+        ipEntry = Entry(textBoxFrame, borderwidth=0, bg='#404040', font='Roboto 16', fg='#FFFFFF',
+                        insertbackground='#909090')
         ipEntry.grid(row=1, column=1)
 
         buttonFrame = Frame(container, bg='#101010')
@@ -234,10 +270,12 @@ class JoinRoom:
         buttonFrame.grid_columnconfigure(1, weight=11)
         buttonFrame.grid_rowconfigure(0, weight=1)
 
-        cancel = Button(buttonFrame, text='Cancel', bg='#404040', fg='white', borderwidth=0, command=lambda: swapScreens(h))
+        cancel = Button(buttonFrame, text='Cancel', bg='#404040', fg='white', borderwidth=0,
+                        command=lambda: swapScreens(h))
         cancel.grid(row=0, column=0, padx=5, pady=5, sticky='NSEW')
 
-        join = Button(buttonFrame, text='Join', bg='#0f61d4', fg='white', borderwidth=0, command=lambda: self.joinRoom(idEntry.get(), ipEntry.get()))
+        join = Button(buttonFrame, text='Join', bg='#0f61d4', fg='white', borderwidth=0,
+                      command=lambda: self.joinRoom(idEntry.get(), ipEntry.get()))
         join.grid(row=0, column=1, padx=5, pady=5, sticky='NSEW')
 
     def joinRoom(self, id, ip):
@@ -294,14 +332,16 @@ class CreateRoom:
 
         s = StringVar()
         s.set(self.id)
-        idValue = Entry(textBoxFrame, state='readonly', textvariable=s, readonlybackground='#404040', fg='white', font='Roboto 16')
+        idValue = Entry(textBoxFrame, state='readonly', textvariable=s, readonlybackground='#404040', fg='white',
+                        font='Roboto 16')
         idValue.grid(row=0, column=1)
         idValue.config(relief='flat')
 
         nameLabel = Label(textBoxFrame, text='Name:', bg='#101010', fg='white', font='Roboto 16')
         nameLabel.grid(row=1, column=0, ipady=10)
 
-        nameEntry = Entry(textBoxFrame, borderwidth=0, bg='#404040', font='Roboto 16', fg='#FFFFFF', insertbackground='#909090')
+        nameEntry = Entry(textBoxFrame, borderwidth=0, bg='#404040', font='Roboto 16', fg='#FFFFFF',
+                          insertbackground='#909090')
         nameEntry.grid(row=1, column=1)
 
         buttonFrame = Frame(container, bg='#101010')
@@ -311,10 +351,12 @@ class CreateRoom:
         buttonFrame.grid_columnconfigure(1, weight=11)
         buttonFrame.grid_rowconfigure(0, weight=1)
 
-        cancel = Button(buttonFrame, text='Cancel', bg='#404040', fg='white', borderwidth=0, command=lambda: swapScreens(h))
+        cancel = Button(buttonFrame, text='Cancel', bg='#404040', fg='white', borderwidth=0,
+                        command=lambda: swapScreens(h))
         cancel.grid(row=0, column=0, padx=5, pady=5, sticky='NSEW')
 
-        create = Button(buttonFrame, text='Create', bg='#0f61d4', fg='white', borderwidth=0, command=lambda: self.createRoom(self.id, nameEntry.get()))
+        create = Button(buttonFrame, text='Create', bg='#0f61d4', fg='white', borderwidth=0,
+                        command=lambda: self.createRoom(self.id, nameEntry.get()))
         create.grid(row=0, column=1, padx=5, pady=5, sticky='NSEW')
 
     def createRoom(self, id, name):
@@ -368,7 +410,8 @@ class ChangeName:
         s = StringVar()
         s.set(user.name)
 
-        nameEntry = Entry(textBoxFrame, borderwidth=0, bg='#404040', font='Roboto 16', fg='#FFFFFF', insertbackground='#909090', textvariable=s)
+        nameEntry = Entry(textBoxFrame, borderwidth=0, bg='#404040', font='Roboto 16', fg='#FFFFFF',
+                          insertbackground='#909090', textvariable=s)
         nameEntry.grid(row=0, column=1, padx=5)
 
         buttonFrame = Frame(container, bg='#101010')
@@ -378,7 +421,8 @@ class ChangeName:
         buttonFrame.grid_columnconfigure(1, weight=1)
         buttonFrame.grid_rowconfigure(0, weight=1)
 
-        submit = Button(buttonFrame, text='Submit', bg='#0f61d4', fg='white', borderwidth=0, command=lambda: self.setName(nameEntry.get()))
+        submit = Button(buttonFrame, text='Submit', bg='#0f61d4', fg='white', borderwidth=0,
+                        command=lambda: self.setName(nameEntry.get()))
         submit.grid(row=0, column=1, padx=5, pady=5, sticky='NSEW')
 
     def setName(self, name):
@@ -399,6 +443,11 @@ def swapScreens(new):
 
 def genId():
     return hex(random.randint(2**63+1,2**64))[2:].upper()
+
+def on_startup():
+    global h
+    time.sleep(1)
+    h.changeChatFocus(chats[0])
 
 def on_closing():
     with open('user.pkl', 'wb') as file:
@@ -442,7 +491,10 @@ if __name__ == '__main__':
             chats = pickle.load(file)
             for chat in chats:
                 chat.text = StringVar()
-                chat.text.set("\n".join([f"{contacts[chat.history[key][0]].name}: {chat.history[key][1]}" for key in sorted(chat.history.keys())]))
+                chat.text.set("\n".join([
+                                        f"{contacts[chat.history[key][0]].name}: {chat.history[key][1]}"
+                                        for key in sorted(chat.history.keys())
+                                        ]))
     except FileNotFoundError:
         print('Chats file does not exist, creating.')
         chats = []
@@ -460,7 +512,7 @@ if __name__ == '__main__':
         # Start home screen
         h.render()
         if len(chats) > 0:
-            h.viewedChat = chats[0]
+            threading.Thread(target=on_startup).start()
         # Start menubar
         m.render()
 
