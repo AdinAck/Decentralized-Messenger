@@ -113,7 +113,7 @@ class Home:
             self.viewedChat = None
     def render(self):
         global currentScreen, chats, net
-        currentScreen = self
+        currentScreen.append(self)
 
         self.main = Frame(self.root)
         self.main.pack(fill=BOTH, expand=True)
@@ -136,7 +136,7 @@ class Home:
 
         for i in range(len(chats)):
             print(chats[i].id)
-            self.chatgfx.append(Button(container, text=f'{chats[i].name}\nLast message: test', bg='#101010', fg='white',
+            self.chatgfx.append(Button(container, text=f'{chats[i].name}', bg='#101010', fg='white',
                                        borderwidth=1, width=34, height=5, anchor='w', justify=LEFT,
                                        highlightbackground='white', command=partial(self.changeChatFocus, chats[i])))
             self.chatgfx[-1].pack(side=TOP)
@@ -182,10 +182,9 @@ class Home:
                          font='Roboto 16', relief='flat')
         gIDLabel.pack(side=LEFT, padx=5, pady=5)
 
-        if self.viewedChat != None:
-            deleteGroup = Button(banner, text='Delete', bg='#d40f0f', fg='white', borderwidth=0,
-                          command=lambda: swapScreens(d))
-            deleteGroup.pack(side=RIGHT, padx=5, pady=5)
+        deleteGroup = Button(banner, text='Delete', bg='#d40f0f', fg='white', borderwidth=0,
+                      command=lambda: swapScreens(d))
+        deleteGroup.pack(side=RIGHT, padx=5, pady=5)
 
         self.canvas2 = Canvas(top, bg='#303030', bd=0, highlightthickness=0, relief='ridge')
         self.canvas2.pack(side=LEFT, fill=BOTH, expand=True)
@@ -233,6 +232,7 @@ class Home:
         self.label.configure(textvariable=chat.text)
         self.gNameText.set(self.viewedChat.name)
         self.gIDText.set(self.viewedChat.id)
+        self.chatgfx[len(chats)-1-chats.index(chat)].configure(text=chat.name)
         # for _, user in self.viewedChat.members.items():
         #     if user.status:
         #         self.onlineUsers.insert(END, user.name)
@@ -260,7 +260,7 @@ class JoinRoom:
 
     def render(self):
         global currentScreen
-        currentScreen = self
+        currentScreen.append(self)
 
         self.main = Frame(self.root, bg='#303030')
         self.main.pack(fill=BOTH, expand=True)
@@ -272,16 +272,20 @@ class JoinRoom:
         self.main.grid_columnconfigure(1, weight=1)
         self.main.grid_columnconfigure(2, weight=1)
 
-        container = Frame(self.main, width=350, height=150, bg='#101010')
+        container = Frame(self.main, width=350, height=200, bg='#101010')
         container.grid(row=1, column=1)
 
         container.grid_propagate(0)
-        container.grid_rowconfigure(0,weight=2)
-        container.grid_rowconfigure(1,weight=1)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_rowconfigure(1,weight=2)
+        container.grid_rowconfigure(2,weight=1)
         container.grid_columnconfigure(0, weight=1)
 
+        title = Label(container, text='Join Room', bg='#101010', fg='white', font='Roboto 16')
+        title.grid(row=0, column=0)
+
         textBoxFrame = Frame(container, bg='#101010')
-        textBoxFrame.grid(row=0, column=0, sticky='NEW')
+        textBoxFrame.grid(row=1, column=0, sticky='NEW')
 
         textBoxFrame.grid_columnconfigure(0, weight=1)
         textBoxFrame.grid_columnconfigure(1, weight=1)
@@ -303,7 +307,7 @@ class JoinRoom:
         ipEntry.grid(row=1, column=1)
 
         buttonFrame = Frame(container, bg='#101010')
-        buttonFrame.grid(row=1, column=0, sticky='NSEW')
+        buttonFrame.grid(row=2, column=0, sticky='NSEW')
 
         buttonFrame.grid_columnconfigure(0, weight=10)
         buttonFrame.grid_columnconfigure(1, weight=11)
@@ -319,15 +323,15 @@ class JoinRoom:
 
     def joinRoom(self, id, ip):
         global chats, contacts, user, net, h
-        chats.insert(0, Chat(id, 'yeet'))
+        chats.insert(0, Chat(id, 'Unknown'))
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(0.1)
         try:
             s.connect((ip, 8082))
-            net.clients[chats[0].id] = Client(net, user, s, chats[0], contacts)
+            net.clients[chats[0].id] = Client(net, user, s, chats[0], contacts, h)
             threading.Thread(target=net.clients[chats[0].id].mainloop, daemon=True).start()
-            h.viewedChat = chats[0]
             swapScreens(h)
+            h.changeChatFocus(chats[0])
         except socket.timeout:
             chats.pop(0)
 
@@ -338,7 +342,7 @@ class CreateRoom:
 
     def render(self):
         global currentScreen
-        currentScreen = self
+        currentScreen.append(self)
 
         self.main = Frame(self.root, bg='#303030')
         self.main.pack(fill=BOTH, expand=True)
@@ -350,16 +354,20 @@ class CreateRoom:
         self.main.grid_columnconfigure(1, weight=1)
         self.main.grid_columnconfigure(2, weight=1)
 
-        container = Frame(self.main, width=350, height=150, bg='#101010')
+        container = Frame(self.main, width=350, height=200, bg='#101010')
         container.grid(row=1, column=1)
 
         container.grid_propagate(0)
-        container.grid_rowconfigure(0,weight=2)
-        container.grid_rowconfigure(1,weight=1)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_rowconfigure(1,weight=2)
+        container.grid_rowconfigure(2,weight=1)
         container.grid_columnconfigure(0, weight=1)
 
+        title = Label(container, text='Create Room', bg='#101010', fg='white', font='Roboto 16')
+        title.grid(row=0, column=0)
+
         textBoxFrame = Frame(container, bg='#101010')
-        textBoxFrame.grid(row=0, column=0, sticky='NEW')
+        textBoxFrame.grid(row=1, column=0, sticky='NEW')
 
         textBoxFrame.grid_columnconfigure(0, weight=1)
         textBoxFrame.grid_columnconfigure(1, weight=1)
@@ -384,7 +392,7 @@ class CreateRoom:
         nameEntry.grid(row=1, column=1)
 
         buttonFrame = Frame(container, bg='#101010')
-        buttonFrame.grid(row=1, column=0, sticky='NSEW')
+        buttonFrame.grid(row=2, column=0, sticky='NSEW')
 
         buttonFrame.grid_columnconfigure(0, weight=10)
         buttonFrame.grid_columnconfigure(1, weight=11)
@@ -415,7 +423,7 @@ class DeleteRoom:
 
     def render(self):
         global currentScreen
-        currentScreen = self
+        currentScreen.append(self)
 
         self.main = Frame(self.root, bg='#303030')
         self.main.pack(fill=BOTH, expand=True)
@@ -468,8 +476,12 @@ class DeleteRoom:
         h.chatgfx[index].destroy()
         h.chatgfx.pop(index)
         chats.remove(chat)
-        swapScreens(h)
-        h.changeChatFocus(chats[0])
+        if len(chats) == 0:
+            self.main.destroy()
+            setup()
+        else:
+            swapScreens(h)
+            h.changeChatFocus(chats[0])
 
 class ChangeName:
     def __init__(self, root):
@@ -477,7 +489,7 @@ class ChangeName:
 
     def render(self):
         global currentScreen, user
-        currentScreen = self
+        currentScreen.append(self)
 
         self.main = Frame(self.root, bg='#303030')
         self.main.pack(fill=BOTH, expand=True)
@@ -531,19 +543,37 @@ class ChangeName:
             global user
             user.name = name
             print(f'Updated name to {user.name}.')
-            swapScreens(h)
+            self.main.destroy()
+            setup()
 
 def swapScreens(new):
     global root, currentScreen, menubar
-    currentScreen.main.destroy()
-    if type(currentScreen) != ChangeName:
-        m.menubar.destroy()
+    for screen in currentScreen:
+        screen.main.destroy()
+        try:
+            if type(screen) != ChangeName:
+                m.menubar.destroy()
+        except:
+            continue
+    currentScreen = []
     new.render()
     if type(new) != ChangeName:
         m.render()
 
 def genId():
     return hex(random.randint(2**63+1,2**64))[2:].upper()
+
+def setup():
+    global chats, h, m, j, c
+    # Start home screen
+    if len(chats) > 0:
+        h.render()
+        h.changeChatFocus(chats[0])
+        # Start menubar
+        m.render()
+    else:
+        j.render()
+        c.render()
 
 def on_closing():
     with open('user.pkl', 'wb') as file:
@@ -603,16 +633,12 @@ if __name__ == '__main__':
     d = DeleteRoom(root)
     n = ChangeName(root)
 
+    currentScreen = []
+
     if user.name == '':
         n.render()
     else:
-        # Start home screen
-        h.render()
-        if len(chats) > 0:
-            h.changeChatFocus(chats[0])
-        # Start menubar
-        m.render()
-
+        setup()
     net = Network(h)
 
     threading.Thread(target=net.start).start()

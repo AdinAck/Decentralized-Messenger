@@ -13,12 +13,13 @@ class User:
         self.status = False
 
 class Client:
-    def __init__(self, network, user, sckt, chat, contacts):
+    def __init__(self, network, user, sckt, chat, contacts, h):
         self.user = user
         self.s = sckt
         self.chat = chat
         self.contacts = contacts
         self.network = network
+        self.h = h
         self.s.settimeout(socket.getdefaulttimeout())
         self.run = True
 
@@ -63,6 +64,8 @@ class Client:
 
                 elif command == 4:
                     self.chat.name = data
+                    self.h.chatgfx[-1].configure(text=data)
+                    self.h.gNameText.set(data)
                     print(f'Chat is named {data}')
 
             except ConnectionResetError:
