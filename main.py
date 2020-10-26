@@ -67,8 +67,7 @@ class Network:
                     if id not in self.connections:
                         try:
                             s.connect((member.addr, 8082))
-                            print("hi")
-                            self.clients[chat.id] = Client(self, user, s, chat, contacts)
+                            self.clients[chat.id] = Client(self, user, s, chat, contacts, h)
                             print(f"Connecting to {chat.id}.")
                             threading.Thread(target=self.clients[chat.id].mainloop, daemon=True).start()
                             self.connections.append(id)
@@ -135,7 +134,6 @@ class Home:
         canvas.create_window((0,0), window=container, anchor='sw')
 
         for i in range(len(chats)):
-            print(chats[i].id)
             self.chatgfx.append(Button(container, text=f'{chats[i].name}', bg='#101010', fg='white',
                                        borderwidth=1, width=34, height=5, anchor='w', justify=LEFT,
                                        highlightbackground='white', command=partial(self.changeChatFocus, chats[i])))

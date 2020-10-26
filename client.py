@@ -70,16 +70,14 @@ class Client:
 
             except ConnectionResetError:
                 print(f"Host for {self.chat.id} disconnected, closing...")
-                print(self.network.connections)
-                print(self.hostUserID)
+                self.chat.messages += f"\n{self.contacts[self.hostUserID].name} has gone offline."
                 self.network.connections.remove(self.hostUserID)
                 sortedUsers = sorted([key for key in self.chat.members if key != self.hostUserID])
-                print(sortedUsers)
                 for userID in sortedUsers:
-                    print(userID)
                     if self.user.id == userID:
                         print("Hosting")
                         self.network.hostList.append(self.chat)
+                        self.network.server.chatDict[self.chat.id] = self.chat
                         return
                     else:
                         print("Looking for host")

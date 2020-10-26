@@ -95,10 +95,10 @@ class Server:
                 return
             except IndexError:
                 print(f"[WARN] Received bad packets from {user.name}.")
-            except Exception as e:
-                print(f"[ERR] [{user.addr}] {e}")
-                self.users.remove(user)
-                return
+            # except Exception as e:
+            #     print(f"[ERR] [{user.addr}] {e}")
+            #     self.users.remove(user)
+            #     return
         print(f'Disconnecting from {user.addr}')
 
     def distribute(self, user, command, msg):
