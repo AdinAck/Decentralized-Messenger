@@ -144,6 +144,15 @@ class Home:
         rightSideBar = Frame(self.main, width=250, bg='#101010')
         rightSideBar.grid(row=0,column=2,sticky='NESW')
 
+        # self.onlineUsers = Listbox(rightSideBar)
+        # self.onlineUsers.pack(side=LEFT, padx=5, pady=5, fill=BOTH)
+        #
+        # onlineUsersScrollBar = ttk.Scrollbar(rightSideBar, orient=VERTICAL)
+        # onlineUsersScrollBar.pack(side=RIGHT, fill=Y)
+        #
+        # self.onlineUsers.config(yscrollcommand=onlineUsersScrollBar.set)
+        # onlineUsersScrollBar.config(command=self.onlineUsers.yview)
+
         self.main.rowconfigure(0,weight=1)
         self.main.grid_columnconfigure(1,weight=1)
 
@@ -160,10 +169,11 @@ class Home:
         banner.pack(side=BOTTOM, fill=X, expand=False)
 
         self.gNameText = StringVar()
-        self.gNameText.set(self.viewedChat.name)
 
         self.gIDText = StringVar()
-        self.gIDText.set(self.viewedChat.id)
+        if self.viewedChat != None:
+            self.gNameText.set(self.viewedChat.name)
+            self.gIDText.set(self.viewedChat.id)
 
         gNameLabel = Label(banner, textvariable=self.gNameText, fg='white', bg='#202020', font='Roboto 16')
         gNameLabel.pack(side=LEFT, padx=5, pady=5)
@@ -172,9 +182,10 @@ class Home:
                          font='Roboto 16', relief='flat')
         gIDLabel.pack(side=LEFT, padx=5, pady=5)
 
-        deleteGroup = Button(banner, text='Delete', bg='#d40f0f', fg='white', borderwidth=0,
-                      command=lambda: swapScreens(d))
-        deleteGroup.pack(side=RIGHT, padx=5, pady=5)
+        if self.viewedChat != None:
+            deleteGroup = Button(banner, text='Delete', bg='#d40f0f', fg='white', borderwidth=0,
+                          command=lambda: swapScreens(d))
+            deleteGroup.pack(side=RIGHT, padx=5, pady=5)
 
         self.canvas2 = Canvas(top, bg='#303030', bd=0, highlightthickness=0, relief='ridge')
         self.canvas2.pack(side=LEFT, fill=BOTH, expand=True)
@@ -222,9 +233,13 @@ class Home:
         self.label.configure(textvariable=chat.text)
         self.gNameText.set(self.viewedChat.name)
         self.gIDText.set(self.viewedChat.id)
+        # for _, user in self.viewedChat.members.items():
+        #     if user.status:
+        #         self.onlineUsers.insert(END, user.name)
 
     def handleReturn(self, event):
         self.sendMsg(self.viewedChat.id, int(datetime.now().strftime("%Y%m%d%H%M%S%f")), self.msgBox.get())
+        # self.canvas2.yview_moveto(1)
 
     def sendMsg(self, gid, time, msg):
         global net, user, chats, h

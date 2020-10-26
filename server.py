@@ -38,22 +38,28 @@ class Server:
             threading.Thread(target=self.client, args=[self.users[-1]]).start()
 
     def initialize(self, user, data):
+        global h
         if user.id == "UNKNOWN":
             stuff = data.split(",") # id, name
             # if stuff[0] in [i.name for i in self.users]:
             #     print(f"[WARN] {user.addr} username already taken.")
             #     user.sock.send(bytearray([6]))
             #     continue
-            user.id, user.name = stuff[0], stuff[1]
+            user.chatID, user.id, user.name = stuff[0], stuff[1], stuff[2]
             print(f"[INFO] {user.addr} initialized. ID is {user.id}, name is {user.name}")
 
             self.contacts[user.id] = NonSockUser(id=user.id, addr=user.addr[0], name=user.name)
+            self.chatDict[user.chatID].messages += f"\n{user.name} has come online."
 
             msg = f'{self.user.id},HOST,{self.user.name}'
             user.sock.send(bytearray([1, len(msg)]))
             user.sock.send(msg.encode())
 
-            for u in [i for i in self.users if i != user]:
+            msg = f'{self.chatDict[user.chatID].name}'
+            user.sock.send(bytearray([4, len(msg)]))
+            user.sock.send(msg.encode())
+
+            for u in [i for i in self.users if i.id != user.id]:
                 msg = f'{u.id},{u.addr},{u.name}'
                 user.sock.send(bytearray([1, len(msg)]))
                 user.sock.send(msg.encode())
@@ -104,6 +110,7 @@ class Server:
         try:
             self.users.remove(user)
             print(f"[INFO] {user.id} aka {user.name} has left.")
+            self.chatDict[user.chatID].messages += f"\n{user.name} has gone offline."
             user.sock.close()
             self.contacts[user.id].status = False
             for u in [i for i in self.users if i != user]:
