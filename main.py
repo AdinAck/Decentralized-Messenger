@@ -132,7 +132,7 @@ class Home:
 
         container = Frame(canvas, width=250, bg='#101010')
 
-        canvas.create_window((0,0), window=container, anchor='nw')
+        canvas.create_window((0,0), window=container, anchor='sw')
 
         for i in range(len(chats)):
             print(chats[i].id)
@@ -150,25 +150,45 @@ class Home:
         messageArea = Frame(self.main, bg='#303030')
         messageArea.grid(row=0,column=1,sticky='NESW')
 
-        bottom = Frame(messageArea, bg='#303030')
+        bottom = Frame(messageArea, bg='#202020')
         bottom.pack(side=BOTTOM, fill=X, expand=False)
 
         top = Frame(messageArea, bg='#202020')
         top.pack(side=BOTTOM, fill=BOTH, expand=True)
 
-        canvas2 = Canvas(top, bg='#303030', bd=0, highlightthickness=0, relief='ridge')
-        canvas2.pack(side=LEFT, fill=BOTH, expand=True)
+        banner = Frame(messageArea, bg='#202020', height=50)
+        banner.pack(side=BOTTOM, fill=X, expand=False)
 
-        scrollbar = ttk.Scrollbar(top, orient=VERTICAL, command=canvas2.yview)
+        self.gNameText = StringVar()
+        self.gNameText.set(self.viewedChat.name)
+
+        self.gIDText = StringVar()
+        self.gIDText.set(self.viewedChat.id)
+
+        gNameLabel = Label(banner, textvariable=self.gNameText, fg='white', bg='#202020', font='Roboto 16')
+        gNameLabel.pack(side=LEFT, padx=5, pady=5)
+
+        gIDLabel = Entry(banner, state='readonly', textvariable=self.gIDText, readonlybackground='#202020', fg='white',
+                         font='Roboto 16', relief='flat')
+        gIDLabel.pack(side=LEFT, padx=5, pady=5)
+
+        deleteGroup = Button(banner, text='Delete', bg='#d40f0f', fg='white', borderwidth=0,
+                      command=lambda: swapScreens(d))
+        deleteGroup.pack(side=RIGHT, padx=5, pady=5)
+
+        self.canvas2 = Canvas(top, bg='#303030', bd=0, highlightthickness=0, relief='ridge')
+        self.canvas2.pack(side=LEFT, fill=BOTH, expand=True)
+
+        scrollbar = ttk.Scrollbar(top, orient=VERTICAL, command=self.canvas2.yview)
         scrollbar.pack(side=RIGHT, fill=Y)
 
-        canvas2.configure(yscrollcommand=scrollbar.set)
-        canvas2.bind('<Configure>', lambda e: canvas2.configure(scrollregion = canvas2.bbox('all')))
+        self.canvas2.configure(yscrollcommand=scrollbar.set)
+        self.canvas2.bind('<Configure>', self.updateCanvas)
 
-        container2 = Frame(canvas2, bg='#303030', height=100)
-        container2.bind('<Configure>', lambda e: canvas2.configure(scrollregion = canvas2.bbox('all')))
+        container2 = Frame(self.canvas2, bg='#303030')
+        container2.bind('<Configure>', self.updateCanvas)
 
-        canvas2.create_window((0,0), window=container2, anchor='sw', width=2000)
+        self.window = self.canvas2.create_window((0,1000), window=container2, anchor='sw', width=2000, height=2000)
 
         msgBoxRect = Frame(bottom,height=40, bg='#404040')
         msgBoxRect.pack(side=BOTTOM, fill=X, padx=20,pady=20)
@@ -187,17 +207,21 @@ class Home:
                       self.msgBox.get()))
         send.grid(row=0, column=1, sticky='NSEW')
 
-        if self.viewedChat != None:
-            tmp = StringVar()
-            tmp.set('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
-            self.label = Label(container2, textvariable=tmp, bg='#303030', fg='white', font='Roboto 16', anchor='w',
-                         justify=LEFT)
-            self.label.pack(side=BOTTOM, fill=X, padx=20)
+        self.label = Label(container2, textvariable=StringVar(), bg='#303030', fg='white', font='Roboto 16', anchor='w',
+                     justify=LEFT)
+        self.label.pack(side=BOTTOM, fill=X, padx=20)
+        self.canvas2.itemconfigure(self.window, height=self.label['height'])
+
+    def updateCanvas(self, event):
+        self.canvas2.move(self.window, 0, 5)
+        self.canvas2.configure(scrollregion = self.canvas2.bbox('all'))
 
     def changeChatFocus(self, chat):
         print(f"Changed chat to {chat.id}")
         self.viewedChat = chat
         self.label.configure(textvariable=chat.text)
+        self.gNameText.set(self.viewedChat.name)
+        self.gIDText.set(self.viewedChat.id)
 
     def handleReturn(self, event):
         self.sendMsg(self.viewedChat.id, int(datetime.now().strftime("%Y%m%d%H%M%S%f")), self.msgBox.get())
@@ -364,11 +388,73 @@ class CreateRoom:
         print(f'Created room with id: {id}')
         chats.insert(0, Chat(id, name))
         c.id = genId()
-        net.hostList.append(chats[-1])
-        net.server.chatDict[chats[-1].id] = chats[-1]
+        net.hostList.append(chats[0])
+        net.server.chatDict[chats[0].id] = chats[0]
         print(f'Added {id} to hostList.')
-        h.viewedChat = chats[0]
         swapScreens(h)
+        h.changeChatFocus(chats[0])
+
+class DeleteRoom:
+    def __init__(self, root):
+        self.root = root
+
+    def render(self):
+        global currentScreen
+        currentScreen = self
+
+        self.main = Frame(self.root, bg='#303030')
+        self.main.pack(fill=BOTH, expand=True)
+
+        self.main.grid_rowconfigure(0, weight=1)
+        self.main.grid_rowconfigure(1, weight=1)
+        self.main.grid_rowconfigure(2, weight=1)
+        self.main.grid_columnconfigure(0, weight=1)
+        self.main.grid_columnconfigure(1, weight=1)
+        self.main.grid_columnconfigure(2, weight=1)
+
+        container = Frame(self.main, width=350, height=150, bg='#101010')
+        container.grid(row=1, column=1)
+
+        container.grid_propagate(0)
+        container.grid_rowconfigure(0,weight=2)
+        container.grid_rowconfigure(1,weight=1)
+        container.grid_columnconfigure(0, weight=1)
+
+        textBoxFrame = Frame(container, bg='#101010')
+        textBoxFrame.grid(row=0, column=0, sticky='NEW')
+
+        textBoxFrame.grid_columnconfigure(0, weight=1)
+        textBoxFrame.grid_columnconfigure(1, weight=1)
+        textBoxFrame.grid_rowconfigure(0, weight=1)
+        textBoxFrame.grid_rowconfigure(1, weight=1)
+
+        msg = Label(textBoxFrame, text='Are you sure?', bg='#101010', fg='white', font='Roboto 16')
+        msg.grid(row=0, column=0, ipady=10)
+
+        buttonFrame = Frame(container, bg='#101010')
+        buttonFrame.grid(row=1, column=0, sticky='NSEW')
+
+        buttonFrame.grid_columnconfigure(0, weight=10)
+        buttonFrame.grid_columnconfigure(1, weight=11)
+        buttonFrame.grid_rowconfigure(0, weight=1)
+
+        cancel = Button(buttonFrame, text='Cancel', bg='#404040', fg='white', borderwidth=0,
+                        command=lambda: swapScreens(h))
+        cancel.grid(row=0, column=0, padx=5, pady=5, sticky='NSEW')
+
+        delete = Button(buttonFrame, text='Delete', bg='#0f61d4', fg='white', borderwidth=0,
+                      command=lambda: self.deleteRoom())
+        delete.grid(row=0, column=1, padx=5, pady=5, sticky='NSEW')
+
+    def deleteRoom(self):
+        global chats, h
+        chat = h.viewedChat
+        index = len(chats)-1-chats.index(chat)
+        h.chatgfx[index].destroy()
+        h.chatgfx.pop(index)
+        chats.remove(chat)
+        swapScreens(h)
+        h.changeChatFocus(chats[0])
 
 class ChangeName:
     def __init__(self, root):
@@ -444,11 +530,6 @@ def swapScreens(new):
 def genId():
     return hex(random.randint(2**63+1,2**64))[2:].upper()
 
-def on_startup():
-    global h
-    time.sleep(1)
-    h.changeChatFocus(chats[0])
-
 def on_closing():
     with open('user.pkl', 'wb') as file:
         pickle.dump(user, file, pickle.HIGHEST_PROTOCOL)
@@ -504,6 +585,7 @@ if __name__ == '__main__':
     h = Home(root)
     j = JoinRoom(root)
     c = CreateRoom(root)
+    d = DeleteRoom(root)
     n = ChangeName(root)
 
     if user.name == '':
@@ -512,7 +594,7 @@ if __name__ == '__main__':
         # Start home screen
         h.render()
         if len(chats) > 0:
-            threading.Thread(target=on_startup).start()
+            h.changeChatFocus(chats[0])
         # Start menubar
         m.render()
 
