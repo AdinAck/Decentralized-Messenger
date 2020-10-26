@@ -433,7 +433,7 @@ class DeleteRoom:
         self.main.grid_columnconfigure(1, weight=1)
         self.main.grid_columnconfigure(2, weight=1)
 
-        container = Frame(self.main, width=350, height=150, bg='#101010')
+        container = Frame(self.main, width=350, height=100, bg='#101010')
         container.grid(row=1, column=1)
 
         container.grid_propagate(0)
@@ -463,7 +463,7 @@ class DeleteRoom:
                         command=lambda: swapScreens(h))
         cancel.grid(row=0, column=0, padx=5, pady=5, sticky='NSEW')
 
-        delete = Button(buttonFrame, text='Delete', bg='#0f61d4', fg='white', borderwidth=0,
+        delete = Button(buttonFrame, text='Delete', bg='#d40f0f', fg='white', borderwidth=0,
                       command=lambda: self.deleteRoom())
         delete.grid(row=0, column=1, padx=5, pady=5, sticky='NSEW')
 
