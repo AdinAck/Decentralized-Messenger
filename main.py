@@ -261,7 +261,7 @@ class JoinRoom:
         currentScreen.append(self)
 
         self.main = Frame(self.root, bg='#303030')
-        self.main.pack(fill=BOTH, expand=True)
+        self.main.pack(side=LEFT, fill=BOTH, expand=True)
 
         self.main.grid_rowconfigure(0, weight=1)
         self.main.grid_rowconfigure(1, weight=1)
@@ -343,7 +343,7 @@ class CreateRoom:
         currentScreen.append(self)
 
         self.main = Frame(self.root, bg='#303030')
-        self.main.pack(fill=BOTH, expand=True)
+        self.main.pack(side=LEFT, fill=BOTH, expand=True)
 
         self.main.grid_rowconfigure(0, weight=1)
         self.main.grid_rowconfigure(1, weight=1)
